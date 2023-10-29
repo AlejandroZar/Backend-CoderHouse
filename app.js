@@ -1,33 +1,44 @@
+const express = require('express');
 const ProductManager = require('./ProductManager');
+
+const app = express();
+const port = 8080;
+
 const manager = new ProductManager('products.json');
 
-// Agregar un producto
-const newProduct = manager.addProduct({
-  title: 'Nuevo Producto',
-  description: 'Descripción del nuevo producto',
-  price: 29.99,
-  thumbnail: 'imagen3.jpg',
-  code: 'P3',
-  stock: 10
+app.get('/products', async (req, res) => {
+  try {
+    const limit = req.query.limit;
+    const products = await manager.getProducts();
+
+    if (limit) {
+      const limitedProducts = products.slice(0, limit);
+      res.json({ products: limitedProducts });
+    } else {
+      res.json({ products });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener productos' });
+  }
 });
-console.log('Nuevo producto:', newProduct);
 
-// Consultar todos los productos
-const allProducts = manager.getProducts();
-console.log('Lista de productos:', allProducts);
+app.get('/products/:pid', async (req, res) => {
+  const productId = parseInt(req.params.pid, 10);
 
-// Consultar un producto por ID
-const productById = manager.getProductById(2);
-console.log('Producto con ID 2:', productById);
+  if (isNaN(productId)) {
+    res.status(400).json({ error: 'El ID del producto debe ser un número válido' });
+    return;
+  }
 
-// Actualizar un producto
-const updatedProduct = manager.updateProduct(1, {
-  title: 'Producto Actualizado',
-  price: 39.99,
-  stock: 5
+  const product = await manager.getProductById(productId);
+
+  if (product) {
+    res.json({ product });
+  } else {
+    res.status(404).json({ error: 'Producto no encontrado' });
+  }
 });
-console.log('Producto actualizado:', updatedProduct);
 
-// Eliminar un producto
-const deleted = manager.deleteProduct(3);
-console.log('Producto eliminado:', deleted);
+app.listen(port, () => {
+  console.log(`Servidor Express escuchando en el puerto ${port}`);
+});
